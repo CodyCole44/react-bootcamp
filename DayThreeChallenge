@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+  <title>Popular Repos</title>
+
+  <script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+
+  <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+
+  <script src='https://unpkg.com/babel-standalone@6/babel.min.js'></script>
+
+</head>
+
+<body>
+
+  <div id='app'></div>
+
+  <script>
+
+    window.API = {
+
+      fetchPopularRepos(language) {
+
+        // "language" can be "javascript", "ruby", "python", or "all"
+
+        const encodedURI = encodeURI(`https://api.github.com/search/repositories?q=stars:>1+language:${language}&sort=stars&order=desc&type=Repositories`)
+
+
+
+        return fetch(encodedURI)
+
+          .then((data) => data.json())
+
+          .then((repos) => repos.items)
+
+          .catch((error) => {
+
+            console.warn(error)
+
+            return null
+
+          });
+
+      }
+
+    }
+
+  </script>
+
+
+
+  <script type='text/babel'>
+
+    function GetLanguages(props){       
+        return(          
+            <div>
+                <ul>
+                    {props.list.map((language) =>(            
+                        <li key={language}>
+                        <span onClick={() => props.onLanguageSelected(language)}>{language}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        )
+    }
+
+
+    class LanguageSelect extends React.Component {
+        constructor(props){
+            super(props)
+
+            this.state = {
+                languages : ["javascript","ruby","python","all"],
+                selected:"javascript"    
+                }
+
+                this.handleLanguageSelect = this.handleLanguageSelect.bind(this)
+            }
+   
+        handleLanguageSelect(language)
+        {                        
+            this.setState({
+                selected: language
+            })
+        }
+        render(){
+            return(
+                <div>
+                <GetLanguages 
+                    list = {this.state.languages}
+                    onLanguageSelected = {this.handleLanguageSelect}
+                />
+                
+                <h1 style={headStyle}>{this.state.selected}</h1>
+                <Repo
+                    selected = {this.state.selected}
+                />
+                </div>
+            )
+        }
+
+    }
+
+    function GetRepoList(props){
+        return(
+            <div>
+                {props.list.map((repo) =>(
+                    <ul key = {repo.url}>
+                        <li>{repo.url}</li>
+                        <li>{repo.author}</li>
+                        <li>{repo.stars} stars</li>
+                    </ul>
+                ))}
+            </div>
+        )
+    }
+    class Repo extends React.Component {
+        constructor(props) {
+            super(props)
+
+            this.state = {
+            repos :[
+                {
+                    language: "javascript",
+                    url: "freeCodeCamp",
+                    author: "@freeCodeCamp",
+                    stars: 291952,
+                },
+                ],
+            loaded : true,
+        }
+        }
+
+        componentDidMount(){
+            console.log('--componentDidMount--')
+            API.fetchPopularRepos(this.props.selected)
+          .then((returnData) =>{
+              this.setState({
+                  repos : returnData
+                  ,
+                  loaded:true
+            })
+          })
+          
+        }
+        componentDidUpdate(){
+          console.log('--componentDidUpdate--')
+          console.log(this.state.repos)
+      }
+        render(){
+            
+            if(this.state.loaded === false)
+            {
+              return(
+                  <div>
+                  <Loading />
+                  </div>
+              )  
+            }
+            return(               
+            <div>
+                <GetRepoList
+                list ={this.state.repos.filter((repo) => repo.language === this.props.selected)}
+                />
+            </div>
+            )
+        }
+    }
+
+    class Loading extends React.Component {
+
+      constructor(props) {
+
+        super(props);
+
+
+
+        this.state = {
+
+          text: 'Loading'
+
+        };
+
+      }
+
+      componentDidMount() {
+
+        const stopper = this.state.text + '...';
+
+
+
+        this.interval = window.setInterval(() => {
+
+          this.state.text === stopper
+
+            ? this.setState(() => ({ text: 'Loading' }))
+
+            : this.setState((prevState) => ({ text: prevState.text + '.' }))
+
+        }, 300)
+
+      }
+
+      componentWillUnmount() {
+
+        window.clearInterval(this.interval);
+
+      }
+
+      render() {
+
+        return (
+
+          <p>
+
+            {this.state.text}
+
+          </p>
+
+        )
+
+      }
+
+    }
+
+    const headStyle = {
+        textAlign : 'center'
+    }
+
+    class App extends React.Component {
+
+      render() {
+
+        return (
+
+          <div>
+            <LanguageSelect />          
+                   
+          </div>
+
+        )
+
+      }
+
+    }
+
+
+
+    ReactDOM.render(
+      
+      <App />,
+
+      document.getElementById('app')
+
+    )
+
+  </script>
+
+</body>
+
+</html>
